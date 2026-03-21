@@ -113,6 +113,9 @@ h1 em{color:var(--accent);font-style:normal}
 .cell.done.r1,.cell.done.r2,.cell.done.r3,.cell.done.r4,.cell.done.r5{background:var(--green-soft)}
 .num{font-size:clamp(.52rem,1.2vw,.7rem);font-weight:500;color:var(--muted);line-height:1}
 .chk{font-size:clamp(.6rem,1.5vw,.85rem);margin-top:2px}
+.cell-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:clamp(.5rem,1.1vw,.68rem);font-weight:700;color:var(--muted);opacity:.55;pointer-events:none;letter-spacing:-.01em}
+.cell.today .cell-pct{color:var(--accent);opacity:.8}
+.cell.done .cell-pct{color:var(--green);opacity:.6}
 .cell-start-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
 .btn-cell-start{font-family:inherit;font-size:.52rem;font-weight:700;background:var(--accent);color:#fff;border:none;border-radius:3px;padding:2px 5px;cursor:pointer;letter-spacing:.05em;text-transform:uppercase}
 
@@ -745,6 +748,12 @@ loadProfileData();
 // ══════════════════════════════════════════════════════════════════════════════
 // CLOCK
 // ══════════════════════════════════════════════════════════════════════════════
+function getDayPct(){
+  var now=new Date();
+  var secsElapsed=now.getHours()*3600+now.getMinutes()*60+now.getSeconds();
+  return Math.min(100,Math.floor((secsElapsed/86400)*100));
+}
+
 function tickClock(){
   var now=new Date();
   document.getElementById('clock-time').textContent=
@@ -770,6 +779,10 @@ function tickClock(){
   var cdStr=String(rh).padStart(2,'0')+':'+String(rm).padStart(2,'0')+':'+String(rs).padStart(2,'0');
   var urgent=rh===0&&rm<30;
   info.innerHTML='Day <strong>'+curDay+'</strong>/'+state.duration+' &nbsp;·&nbsp; Ends in <span class="countdown'+(urgent?' urgent':'')+'">'+ cdStr+'</span>';
+
+  // Update today's cell percentage live
+  var pctEl=document.getElementById('cell-pct-today');
+  if(pctEl) pctEl.textContent=getDayPct()+'%';
 }
 setInterval(tickClock,1000); tickClock();
 
@@ -901,7 +914,13 @@ function renderGrid(){
     if(isFuture) cls+=' locked';
     if(hasCh) cls+=' has-ch';
     var cell=document.createElement('div');cell.className=cls;
-    var inner='<span class="num">'+i+'</span><span class="chk">'+(day.done?'✓':'')+'</span>';
+    var pctHtml='';
+    if(isToday){
+      pctHtml='<span class="cell-pct" id="cell-pct-today">'+getDayPct()+'%</span>';
+    } else if(!isFuture&&cur!==null&&i<cur){
+      pctHtml='<span class="cell-pct">100%</span>';
+    }
+    var inner='<span class="num">'+i+'</span><span class="chk">'+(day.done?'✓':'')+'</span>'+pctHtml;
     if(i===1&&!state.startDate) inner+='<div class="cell-start-overlay"><button class="btn-cell-start" onclick="event.stopPropagation();startChallenge()">▶ Start</button></div>';
     cell.innerHTML=inner;
     if(!isFuture) cell.addEventListener('click',(function(n){return function(){openModal(n)}})(i));
